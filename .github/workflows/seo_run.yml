@@ -1,0 +1,28 @@
+name: Run SEO Auto Post
+
+on:
+  workflow_dispatch: # 手動実行用ボタンの有効化
+  schedule:
+    - cron: '0 0 * * 1' # 毎週月曜日 午前9時(JST) に自動実行
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: コードのチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Python環境のセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 依存ライブラリ（requests）のインストール
+        run: pip install requests
+
+      - name: 暗号化Secretsを使用してPythonを実行
+        env:
+          LIVEDOOR_ID: ${{ secrets.LIVEDOOR_ID }}
+          ATOMPUB_PASSWORD: ${{ secrets.ATOMPUB_PASSWORD }}
+          BLOG_ID: ${{ secrets.BLOG_ID }}
+        run: python auto_post.py
