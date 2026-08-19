@@ -3,6 +3,7 @@ import hashlib
 import base64
 import datetime
 import requests
+import html  # 追加: タイトル等のXMLエスケープ用
 
 # 1. GitHub Secretsから安全に暗号化情報を取得
 LIVEDOOR_ID = os.environ.get("LIVEDOOR_ID")
@@ -29,15 +30,28 @@ def generate_wsse_header(username, password):
         f'Created="{created}"'
     )
 
-def post_article(title, body_html, category=None):
+def post_article(title, body_html, category=None, is_draft=False):
     """AtomPub API経由で記事を新規作成・投稿"""
-    full_content = f"{body_html}\n\n<!-- SEO JSON-LD Auto-Injected -->\n{JSON_LD_SCRIPT}"
-    category_xml = f'<category term="{category}" />' if category else ""
+    
+    # 1. 本文内の CDATA 終了タグと競合する文字列をエスケープ
+    safe_body_html = body_html.replace("]]>", "]]]]><![CDATA[>")
+    full_content = f"{safe_body_html}\n\n<!-- SEO JSON-LD Auto-Injected -->\n{JSON_LD_SCRIPT}"
+    
+    # 2. タイトルやカテゴリ内の特殊文字(<, >, &など)をエスケープ
+    safe_title = html.escape(title)
+    category_xml = f'<category term="{html.escape(category)}" />' if category else ""
+    
+    # 3. 下書き(draft)コントロールタグの生成
+    draft_val = "yes" if is_draft else "no"
+    draft_xml = f'<app:control><app:draft>{draft_val}</app:draft></app:control>'
+    
+    # 4. XMLペイロード（xmlns:app を追加し、content typeをhtmlに変更）
     xml_payload = f"""<?xml version="1.0" encoding="utf-8"?>
-<entry xmlns="http://www.w3.org/2005/Atom">
-  <title>{title}</title>
-  <content type="text/html"><![CDATA[{full_content}]]></content>
+<entry xmlns="http://www.w3.org/2005/Atom" xmlns:app="http://www.w3.org/2007/app">
+  <title>{safe_title}</title>
+  <content type="html"><![CDATA[{full_content}]]></content>
   {category_xml}
+  {draft_xml}
 </entry>
 """
     headers = {
@@ -53,8 +67,10 @@ def post_article(title, body_html, category=None):
         print(f"❌ 投稿失敗 [{response.status_code}]: {response.text}")
 
 if __name__ == "__main__":
-    # 実行テスト用のサンプル記事データ（運用に合わせて書き換え可能）
+    # 実行テスト用のサンプル記事データ
     post_article(
         title="科学技術政策とSociety 5.0に関する最新提言",
-        body_html="<h2>政策起業家としての最新の取り組み</h2><p>地方創生AXやSociety 5.0の推進に向けた政策提言を実施しています。</p>"
+        body_html="<h2>政策起業家としての最新の取り組み</h2><p>地方創生AXやSociety 5.0の推進に向けた政策提言を実施しています。</p>",
+        category="Society 5.0", # カテゴリの指定
+        is_draft=False  # Trueにすると「下書き」として保存されます
     )
