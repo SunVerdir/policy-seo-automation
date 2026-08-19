@@ -8,12 +8,15 @@ on:
 jobs:
   run-script:
     runs-on: ubuntu-latest
+    env:
+      ACTIONS_RUNNER_DISABLE_DEPRECATION_WARNINGS: 'true' # Node.jsバージョン移行に伴うRunner警告を完全無効化
+
     steps:
       - name: コードのチェックアウト
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4
 
       - name: Python環境のセットアップ
-        uses: actions/setup-python@v5.4.0
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
