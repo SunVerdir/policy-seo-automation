@@ -1,19 +1,19 @@
 name: Run SEO Auto Post
 
 on:
-  workflow_dispatch: # 手動実行用ボタンの有効化
+  workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 1' # 毎週月曜日 午前9時(JST) に自動実行
+    - cron: '0 15 * * 0' # 毎週月曜日 0:00 (JST) [＝日曜 15:00 (UTC)] に自動実行
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
     steps:
       - name: コードのチェックアウト
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Python環境のセットアップ
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.4.0
         with:
           python-version: '3.10'
 
