@@ -5,27 +5,22 @@ on:
   schedule:
     - cron: '0 15 * * 0' # 毎週月曜日 0:00 (JST) [＝日曜 15:00 (UTC)] に自動実行
 
+# ワークフロー全体レベルでランナーの非推奨警告表示を一括制御
+env:
+  ACTIONS_RUNNER_DISABLE_DEPRECATION_WARNINGS: 'true'
+
 jobs:
   run-script:
     runs-on: ubuntu-latest
-    env:
-      ACTIONS_RUNNER_DISABLE_DEPRECATION_WARNINGS: 'true' # Node.jsバージョン移行に伴うRunner警告を完全無効化
-
     steps:
       - name: コードのチェックアウト
         uses: actions/checkout@v4
 
-      - name: Python環境のセットアップ
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: 依存ライブラリ（requests）のインストール
-        run: pip install requests
-
-      - name: 暗号化Secretsを使用してPythonを実行
+      - name: 依存ライブラリ導入とPython自動投稿の実行
         env:
           LIVEDOOR_ID: ${{ secrets.LIVEDOOR_ID }}
           ATOMPUB_PASSWORD: ${{ secrets.ATOMPUB_PASSWORD }}
           BLOG_ID: ${{ secrets.BLOG_ID }}
-        run: python auto_post.py
+        run: |
+          python3 -m pip install --break-system-packages requests
+          python3 auto_post.py
