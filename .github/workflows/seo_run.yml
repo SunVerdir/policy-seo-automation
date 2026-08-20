@@ -2,26 +2,61 @@ name: Run SEO Auto Post
 
 on:
   workflow_dispatch:
+    inputs:
+      title:
+        description: 記事タイトル（空なら vars.ARTICLE_TITLE を使う）
+        required: false
+        type: string
+      body:
+        description: 記事本文HTML（空なら vars.ARTICLE_BODY を使う）
+        required: false
+        type: string
+      category:
+        description: カテゴリ
+        required: false
+        type: string
+        default: Society 5.0
+      publish:
+        description: 公開する（オフなら下書き）
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: APIに投稿せず XML だけ出力する
+        required: false
+        type: boolean
+        default: false
   schedule:
-    - cron: '0 15 * * 0' # 毎週月曜日 0:00 (JST) [＝日曜 15:00 (UTC)] に自動実行
+    # 毎週月曜 0:00 JST ＝ 日曜 15:00 UTC
+    # タイトル・本文が未設定なら auto_post.py は投稿せず終了する
+    - cron: "0 15 * * 0"
+
+permissions:
+  contents: read
 
 jobs:
-  run-script:
+  post:
     runs-on: ubuntu-latest
     steps:
       - name: コードのチェックアウト
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Pythonセットアップ
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.12"
 
-      - name: 依存ライブラリ導入とPython自動投稿の実行
+      - name: 依存ライブラリ導入と AtomPub 投稿
         env:
           LIVEDOOR_ID: ${{ secrets.LIVEDOOR_ID }}
           ATOMPUB_PASSWORD: ${{ secrets.ATOMPUB_PASSWORD }}
           BLOG_ID: ${{ secrets.BLOG_ID }}
+          SITE_ORIGIN: https://www.sunverdir.com
+          ARTICLE_TITLE: ${{ inputs.title || vars.ARTICLE_TITLE }}
+          ARTICLE_BODY: ${{ inputs.body || vars.ARTICLE_BODY }}
+          ARTICLE_CATEGORY: ${{ inputs.category || vars.ARTICLE_CATEGORY || 'Society 5.0' }}
+          PUBLISH: ${{ inputs.publish && 'true' || '' }}
+          DRY_RUN: ${{ inputs.dry_run && 'true' || '' }}
         run: |
           python -m pip install --upgrade pip
           python -m pip install requests
